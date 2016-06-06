@@ -84,7 +84,7 @@ int lws_free_header_table(struct lws *wsi)
 
 LWS_VISIBLE int lws_hdr_total_length(struct lws *wsi, enum lws_token_indexes h)
 {
-	int n;
+	int n, cnt = 0;
 	int len = 0;
 
 	n = wsi->u.hdr.ah->frag_index[h];
@@ -93,6 +93,11 @@ LWS_VISIBLE int lws_hdr_total_length(struct lws *wsi, enum lws_token_indexes h)
 	do {
 		len += wsi->u.hdr.ah->frags[n].len;
 		n = wsi->u.hdr.ah->frags[n].next_frag_index;
+
+        ++cnt;
+        if (cnt > 100000) {
+            assert(0);
+        }
 	} while (n);
 
 	return len;
@@ -101,8 +106,9 @@ LWS_VISIBLE int lws_hdr_total_length(struct lws *wsi, enum lws_token_indexes h)
 LWS_VISIBLE int lws_hdr_copy(struct lws *wsi, char *dest, int len,
 			     enum lws_token_indexes h)
 {
-	int toklen = lws_hdr_total_length(wsi, h);
 	int n;
+    int cnt = 0;
+	int toklen = lws_hdr_total_length(wsi, h);
 
 	if (toklen >= len)
 		return -1;
@@ -116,6 +122,11 @@ LWS_VISIBLE int lws_hdr_copy(struct lws *wsi, char *dest, int len,
 			&wsi->u.hdr.ah->data[wsi->u.hdr.ah->frags[n].offset]);
 		dest += wsi->u.hdr.ah->frags[n].len;
 		n = wsi->u.hdr.ah->frags[n].next_frag_index;
+
+        ++cnt;
+        if (cnt > 100000) {
+            assert(0);
+        }
 	} while (n);
 
 	return toklen;
@@ -135,6 +146,8 @@ char *lws_hdr_simple_ptr(struct lws *wsi, enum lws_token_indexes h)
 int lws_hdr_simple_create(struct lws *wsi,
 			  enum lws_token_indexes h, const char *s)
 {
+    int cnt = 0;
+
 	wsi->u.hdr.ah->next_frag_index++;
 	if (wsi->u.hdr.ah->next_frag_index ==
 	       sizeof(wsi->u.hdr.ah->frags) / sizeof(wsi->u.hdr.ah->frags[0])) {
@@ -156,9 +169,14 @@ int lws_hdr_simple_create(struct lws *wsi,
 			return -1;
 		}
 		wsi->u.hdr.ah->data[wsi->u.hdr.ah->pos++] = *s;
-		if (*s)
-			wsi->u.hdr.ah->frags[
-					wsi->u.hdr.ah->next_frag_index].len++;
+		if (*s) {
+			wsi->u.hdr.ah->frags[wsi->u.hdr.ah->next_frag_index].len++;
+        }
+
+        ++cnt;
+        if (cnt > 100000) {
+            assert(0);
+        }
 	} while (*s++);
 
 	return 0;
@@ -208,6 +226,7 @@ static int issue_char(struct lws *wsi, unsigned char c)
 
 int lws_parse(struct lws_context *context, struct lws *wsi, unsigned char c)
 {
+    int cnt = 0;
 	static const unsigned char methods[] = {
 		WSI_TOKEN_GET_URI,
 		WSI_TOKEN_POST_URI,
@@ -504,9 +523,17 @@ start_fragment:
 						 wsi->u.hdr.ah->next_frag_index;
 			break;
 		}
-		/* continuation */
-		while (wsi->u.hdr.ah->frags[n].next_frag_index)
-				n = wsi->u.hdr.ah->frags[n].next_frag_index;
+
+        /* continuation */
+        while (wsi->u.hdr.ah->frags[n].next_frag_index) {
+            n = wsi->u.hdr.ah->frags[n].next_frag_index;
+
+            ++cnt;
+            if (cnt > 100000) {
+                assert(0);
+            }
+        }
+
 		wsi->u.hdr.ah->frags[n].next_frag_index =
 						 wsi->u.hdr.ah->next_frag_index;
 
